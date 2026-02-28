@@ -8,7 +8,7 @@ mode con: cols=100 lines=50
 :: =========================================================
 :: VERSION LOCAL
 :: =========================================================
-set "LOCAL_VER=41"
+set "LOCAL_VER=42"
 set "GITHUB_RAW=https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/main"
 
 :: =========================================================
@@ -344,7 +344,7 @@ if exist "C:\CityPC\Soporte Tecnico CityPC.mx NEW.exe" (
 goto :skip_acceso_soporte
 
 :crear_acceso_soporte
-set "S_LNK=%DESKTOP%\Soporte Tecnico CityPC.mx.lnk"
+set "S_LNK=%PUBLIC%\Desktop\Soporte Tecnico CityPC.mx.lnk"
 set "S_TARGET=C:\CityPC\Soporte Tecnico CityPC.mx NEW.exe"
 set "S_ICON=C:\CityPC\icono CityPC.ico"
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$w=New-Object -ComObject WScript.Shell;$s=$w.CreateShortcut('%S_LNK%');$s.TargetPath='%S_TARGET%';$s.WorkingDirectory='C:\CityPC';if(Test-Path '%S_ICON%'){$s.IconLocation='%S_ICON%'};$s.Save()"
