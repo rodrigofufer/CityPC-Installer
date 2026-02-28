@@ -8,7 +8,7 @@ mode con: cols=100 lines=50
 :: =========================================================
 :: VERSION LOCAL
 :: =========================================================
-set "LOCAL_VER=45"
+set "LOCAL_VER=46"
 set "GITHUB_RAW=https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/main"
 
 :: =========================================================
@@ -373,7 +373,7 @@ echo    Instalando Chrome, Adobe Reader, WinRAR y Zoom...
 echo    Se abrira Ninite. Espere a que termine...
 echo.
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "try{$p=Start-Process -FilePath '!NINITE_LOCAL!' -PassThru -Wait; exit $p.ExitCode}catch{ exit 1 }" >nul 2>&1
+start "" /wait "!NINITE_SRC!"
 set "NINITE_EXITCODE=%errorlevel%"
 if "!NINITE_EXITCODE!"=="0" (
     set "NINITE_EJECUTADO=1"
