@@ -8,7 +8,7 @@ mode con: cols=100 lines=50
 :: =========================================================
 :: VERSION LOCAL
 :: =========================================================
-set "LOCAL_VER=44"
+set "LOCAL_VER=46"
 set "GITHUB_RAW=https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/main"
 
 :: =========================================================
@@ -43,6 +43,9 @@ if %errorlevel% neq 0 (
 :: Ruta USB
 set "USB_PATH=%~dp0"
 if "%USB_PATH:~-1%"=="\" set "USB_PATH=%USB_PATH:~0,-1%"
+
+set "NINITE_EJECUTADO=0"
+set "NINITE_EXITCODE=-1"
 
 :: =========================================================
 :: AUTO-UPDATE DESDE GITHUB
@@ -355,6 +358,7 @@ set "NINITE_SRC="
 if exist "%USB_PATH%\Ninite.exe" set "NINITE_SRC=%USB_PATH%\Ninite.exe"
 if not defined NINITE_SRC if exist "%USB_PATH%\CityPC\Ninite.exe" set "NINITE_SRC=%USB_PATH%\CityPC\Ninite.exe"
 if not defined NINITE_SRC if exist "%USB_PATH%\Archivos\Ninite.exe" set "NINITE_SRC=%USB_PATH%\Archivos\Ninite.exe"
+if not defined NINITE_SRC for %%F in ("%USB_PATH%\Ninite*.exe" "%USB_PATH%\CityPC\Ninite*.exe" "%USB_PATH%\Archivos\Ninite*.exe") do if not defined NINITE_SRC if exist "%%~fF" set "NINITE_SRC=%%~fF"
 
 if not defined NINITE_SRC (
     echo    [ERROR] No se encontro Ninite.exe en la USB.
@@ -365,10 +369,15 @@ echo    Instalando Chrome, Adobe Reader, WinRAR y Zoom...
 echo    Se abrira Ninite. Espere a que termine...
 echo.
 
-start /wait "" "!NINITE_SRC!"
+start "" /wait "!NINITE_SRC!"
+set "NINITE_EXITCODE=%errorlevel%"
+if "!NINITE_EXITCODE!"=="0" (
+    set "NINITE_EJECUTADO=1"
+    echo    [OK] Ninite finalizo la instalacion.
+) else (
+    echo    [AVISO] Ninite termino con codigo !NINITE_EXITCODE!. Revise su ventana.
+)
 timeout /t 5 /nobreak >nul 2>&1
-
-echo    [OK] Ninite finalizo la instalacion.
 
 goto :resumen_final
 
@@ -397,19 +406,39 @@ if exist "C:\CityPC\Soporte Tecnico CityPC.mx NEW.exe" (
     echo   [XX]  Soporte Tecnico CityPC - NO instalado
 )
 
+if "!NINITE_EJECUTADO!"=="1" (
+    echo   [OK]  Ninite                 - Ejecutado correctamente
+) else (
+    echo   [AVISO] Ninite               - No se pudo confirmar ejecucion ^(codigo !NINITE_EXITCODE!^)
+)
+
 set "R_CHROME=0"
 if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" set "R_CHROME=1"
 if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" set "R_CHROME=1"
+if exist "%LocalAppData%\Google\Chrome\Application\chrome.exe" set "R_CHROME=1"
 if "!R_CHROME!"=="1" (
     echo   [OK]  Google Chrome          - Instalado
 ) else (
-    echo   [XX]  Google Chrome          - NO se pudo instalar
+    echo   [AVISO] Google Chrome        - Ninite lo instala en segundo plano, valide al terminar
 )
 
-if exist "C:\Program Files\WinRAR\WinRAR.exe" (
+set "R_WINRAR=0"
+if exist "C:\Program Files\WinRAR\WinRAR.exe" set "R_WINRAR=1"
+if exist "C:\Program Files (x86)\WinRAR\WinRAR.exe" set "R_WINRAR=1"
+if "!R_WINRAR!"=="1" (
     echo   [OK]  WinRAR                 - Instalado
 ) else (
-    echo   [XX]  WinRAR                 - NO se pudo instalar
+    echo   [AVISO] WinRAR               - Ninite lo instala en segundo plano, valide al terminar
+)
+
+set "R_ZOOM=0"
+if exist "%AppData%\Zoom\bin\Zoom.exe" set "R_ZOOM=1"
+if exist "%ProgramFiles%\Zoom\bin\Zoom.exe" set "R_ZOOM=1"
+if exist "%ProgramFiles(x86)%\Zoom\bin\Zoom.exe" set "R_ZOOM=1"
+if "!R_ZOOM!"=="1" (
+    echo   [OK]  Zoom                   - Instalado
+) else (
+    echo   [AVISO] Zoom                 - Ninite lo instala en segundo plano, valide al terminar
 )
 
 echo.
