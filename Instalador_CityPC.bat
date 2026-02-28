@@ -365,6 +365,10 @@ if not defined NINITE_SRC (
     goto :resumen_final
 )
 
+set "NINITE_LOCAL=C:\CityPC\Ninite.exe"
+copy /Y "!NINITE_SRC!" "!NINITE_LOCAL!" >nul 2>&1
+if not exist "!NINITE_LOCAL!" set "NINITE_LOCAL=!NINITE_SRC!"
+
 echo    Instalando Chrome, Adobe Reader, WinRAR y Zoom...
 echo    Se abrira Ninite. Espere a que termine...
 echo.
