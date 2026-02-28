@@ -8,7 +8,7 @@ mode con: cols=100 lines=50
 :: =========================================================
 :: VERSION LOCAL
 :: =========================================================
-set "LOCAL_VER=46"
+set "LOCAL_VER=47"
 set "GITHUB_RAW=https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/main"
 
 :: =========================================================
@@ -46,6 +46,8 @@ if "%USB_PATH:~-1%"=="\" set "USB_PATH=%USB_PATH:~0,-1%"
 
 set "NINITE_EJECUTADO=0"
 set "NINITE_EXITCODE=-1"
+set "R_CHROME_DEFAULT=0"
+set "R_ONEDRIVE_DISABLED=0"
 
 :: =========================================================
 :: AUTO-UPDATE DESDE GITHUB
@@ -383,7 +385,38 @@ if "!NINITE_EXITCODE!"=="0" (
 )
 timeout /t 5 /nobreak >nul 2>&1
 
+call :configurar_chrome_predeterminado
+call :desactivar_onedrive_inicio
+
 goto :resumen_final
+
+:configurar_chrome_predeterminado
+set "CHROME_DEFAULT_EXE="
+if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" set "CHROME_DEFAULT_EXE=C:\Program Files\Google\Chrome\Application\chrome.exe"
+if not defined CHROME_DEFAULT_EXE if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" set "CHROME_DEFAULT_EXE=C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
+if not defined CHROME_DEFAULT_EXE if exist "%LocalAppData%\Google\Chrome\Application\chrome.exe" set "CHROME_DEFAULT_EXE=%LocalAppData%\Google\Chrome\Application\chrome.exe"
+
+if defined CHROME_DEFAULT_EXE (
+    echo    Configurando Google Chrome como navegador predeterminado...
+    start "" /wait "!CHROME_DEFAULT_EXE!" --make-default-browser >nul 2>&1
+    if !errorlevel! equ 0 (
+        set "R_CHROME_DEFAULT=1"
+    )
+) else (
+    echo    [AVISO] No se encontro Chrome para asignarlo como predeterminado.
+)
+goto :eof
+
+:desactivar_onedrive_inicio
+echo    Desactivando OneDrive del inicio automatico...
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "OneDrive" /f >nul 2>&1
+reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "OneDrive" /f >nul 2>&1
+reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run" /v "OneDrive" /f >nul 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v DisableFileSyncNGSC /t REG_DWORD /d 1 /f >nul 2>&1
+if !errorlevel! equ 0 (
+    set "R_ONEDRIVE_DISABLED=1"
+)
+goto :eof
 
 :: =========================================================
 :: RESUMEN FINAL
@@ -424,6 +457,18 @@ if "!R_CHROME!"=="1" (
     echo   [OK]  Google Chrome          - Instalado
 ) else (
     echo   [AVISO] Google Chrome        - Ninite lo instala en segundo plano, valide al terminar
+)
+
+if "!R_CHROME_DEFAULT!"=="1" (
+    echo   [OK]  Google Chrome          - Predeterminado configurado
+) else (
+    echo   [AVISO] Google Chrome        - No se pudo confirmar como predeterminado
+)
+
+if "!R_ONEDRIVE_DISABLED!"=="1" (
+    echo   [OK]  OneDrive               - Inicio automatico desactivado
+) else (
+    echo   [AVISO] OneDrive             - No se pudo confirmar desactivacion de inicio
 )
 
 set "R_WINRAR=0"
