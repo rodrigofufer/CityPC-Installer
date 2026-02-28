@@ -8,7 +8,7 @@ mode con: cols=100 lines=50
 :: =========================================================
 :: VERSION LOCAL
 :: =========================================================
-set "LOCAL_VER=42"
+set "LOCAL_VER=43"
 set "GITHUB_RAW=https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/main"
 
 :: =========================================================
@@ -358,20 +358,32 @@ goto :eof
 :skip_acceso_soporte
 
 :: =========================================================
-:: 6. INSTALACION DE SOFTWARE
+:: 6. INSTALACION DE SOFTWARE (NINITE)
 :: =========================================================
 echo.
 echo  ============================================================
 echo    [6/6] INSTALANDO PROGRAMAS
 echo  ============================================================
 echo.
-echo   Esto puede tardar varios minutos. No cierre esta ventana.
+
+set "NINITE_SRC="
+if exist "%USB_PATH%\Ninite.exe" set "NINITE_SRC=%USB_PATH%\Ninite.exe"
+if not defined NINITE_SRC if exist "%USB_PATH%\CityPC\Ninite.exe" set "NINITE_SRC=%USB_PATH%\CityPC\Ninite.exe"
+if not defined NINITE_SRC if exist "%USB_PATH%\Archivos\Ninite.exe" set "NINITE_SRC=%USB_PATH%\Archivos\Ninite.exe"
+
+if not defined NINITE_SRC (
+    echo    [ERROR] No se encontro Ninite.exe en la USB.
+    goto :resumen_final
+)
+
+echo    Instalando Chrome, Adobe Reader, WinRAR y Zoom...
+echo    Esto puede tardar varios minutos. No cierre esta ventana.
 echo.
 
-call :instalar_chrome
-call :instalar_adobe
-call :instalar_winrar
-call :instalar_zoom
+start /wait "" "!NINITE_SRC!" /silent
+timeout /t 5 /nobreak >nul 2>&1
+
+echo    [OK] Ninite finalizo la instalacion.
 
 goto :resumen_final
 
