@@ -339,9 +339,16 @@ if exist "C:\CityPC\Soporte Tecnico CityPC.mx NEW.exe" (
     set "S_TARGET=C:\CityPC\Soporte Tecnico CityPC.mx NEW.exe"
     set "S_ICON=C:\CityPC\icono CityPC.ico"
 
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "$ws=New-Object -COM WScript.Shell; $s=$ws.CreateShortcut('!DESKTOP!\Soporte Tecnico CityPC.mx.lnk'); $s.TargetPath='!S_TARGET!'; $s.WorkingDirectory='C:\CityPC'; if(Test-Path '!S_ICON!'){$s.IconLocation='!S_ICON!'}; $s.Save()" >nul 2>&1
+    set "S_PS=%temp%\crear_acceso_citypc.ps1"
+    > "!S_PS!" echo $ws=New-Object -COM WScript.Shell; $s=$ws.CreateShortcut^('!DESKTOP!\Soporte Tecnico CityPC.mx.lnk'^); $s.TargetPath='!S_TARGET!'; $s.WorkingDirectory='C:\CityPC'; if^(Test-Path '!S_ICON!'^){$s.IconLocation='!S_ICON!'}; $s.Save^(^)
+    powershell -NoProfile -ExecutionPolicy Bypass -File "!S_PS!" >nul 2>&1
+    del /F /Q "!S_PS!" >nul 2>&1
 
-    echo    [OK] Acceso directo de Soporte creado.
+    if exist "!DESKTOP!\Soporte Tecnico CityPC.mx.lnk" (
+        echo    [OK] Acceso directo de Soporte creado.
+    ) else (
+        echo    [AVISO] Soporte copiado pero no se creo el acceso directo.
+    )
 ) else (
     echo    [ERROR] No se pudo instalar Soporte. Archivo no disponible.
 )
