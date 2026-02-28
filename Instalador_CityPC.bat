@@ -8,7 +8,7 @@ mode con: cols=100 lines=50
 :: =========================================================
 :: VERSION LOCAL
 :: =========================================================
-set "LOCAL_VER=38"
+set "LOCAL_VER=39"
 set "GITHUB_RAW=https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/main"
 
 :: =========================================================
@@ -340,7 +340,12 @@ if exist "C:\CityPC\Soporte Tecnico CityPC.mx NEW.exe" (
     set "S_ICON=C:\CityPC\icono CityPC.ico"
 
     set "S_PS=%temp%\crear_acceso_citypc.ps1"
-    > "!S_PS!" echo $ws=New-Object -COM WScript.Shell; $s=$ws.CreateShortcut^('!DESKTOP!\Soporte Tecnico CityPC.mx.lnk'^); $s.TargetPath='!S_TARGET!'; $s.WorkingDirectory='C:\CityPC'; if^(Test-Path '!S_ICON!'^){$s.IconLocation='!S_ICON!'}; $s.Save^(^)
+    > "!S_PS!" echo $ws = New-Object -ComObject WScript.Shell
+    >> "!S_PS!" echo $s = $ws.CreateShortcut('!DESKTOP!\Soporte Tecnico CityPC.mx.lnk')
+    >> "!S_PS!" echo $s.TargetPath = '!S_TARGET!'
+    >> "!S_PS!" echo $s.WorkingDirectory = 'C:\CityPC'
+    >> "!S_PS!" echo if (Test-Path '!S_ICON!') { $s.IconLocation = '!S_ICON!' }
+    >> "!S_PS!" echo $s.Save()
     powershell -NoProfile -ExecutionPolicy Bypass -File "!S_PS!" >nul 2>&1
     del /F /Q "!S_PS!" >nul 2>&1
 
