@@ -8,7 +8,7 @@ mode con: cols=100 lines=50
 :: =========================================================
 :: VERSION LOCAL
 :: =========================================================
-set "LOCAL_VER=43"
+set "LOCAL_VER=44"
 set "GITHUB_RAW=https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/main"
 
 :: =========================================================
@@ -125,10 +125,6 @@ exit
 
 :skip_update
 
-:: Escritorio publico
-for /f "tokens=2*" %%A in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v "Common Desktop" 2^>nul') do set "DESKTOP=%%B"
-if not defined DESKTOP set "DESKTOP=%PUBLIC%\Desktop"
-
 title CITYPC - INSTALADOR Y ACTUALIZADOR (V%LOCAL_VER%)
 
 cls
@@ -146,9 +142,17 @@ echo  ============================================================
 echo.
 
 :: =========================================================
-:: 1. EXCEPCIONES ANTIVIRUS
+:: 1. ABRIR WINDOWS UPDATE (en segundo plano)
 :: =========================================================
-echo  [1/6] Aplicando Excepciones de Seguridad...
+echo  [1/7] Abriendo Windows Update...
+start "" ms-settings:windowsupdate
+echo    [OK] Windows Update abierto. Dele clic a buscar actualizaciones.
+echo.
+
+:: =========================================================
+:: 2. EXCEPCIONES ANTIVIRUS
+:: =========================================================
+echo  [2/7] Aplicando Excepciones de Seguridad...
 
 sc query WinDefend >nul 2>&1
 if %errorlevel% neq 0 (
@@ -220,10 +224,10 @@ echo    [OK] Excepciones aplicadas.
 :skip_exclusions
 
 :: =========================================================
-:: 2. VERIFICAR INTERNET Y WINDOWS UPDATE
+:: 3. VERIFICAR INTERNET Y WINDOWS UPDATE
 :: =========================================================
 echo.
-echo  [2/6] Verificando Internet y Activando Updates...
+echo  [3/7] Verificando Internet y Activando Updates...
 
 set "HAY_INTERNET=0"
 ping 8.8.8.8 -n 2 -w 2000 >nul 2>&1
@@ -251,10 +255,10 @@ if "!HAY_INTERNET!"=="0" (
 )
 
 :: =========================================================
-:: 3. REPARAR TLS Y WINGET
+:: 4. REPARAR TLS
 :: =========================================================
 echo.
-echo  [3/6] Reparando seguridad y gestor de descargas...
+echo  [4/7] Reparando seguridad...
 
 reg add "HKLM\SOFTWARE\Microsoft\.NETFramework\v4.0.30319" /v SchUseStrongCrypto /t REG_DWORD /d 1 /f >nul 2>&1
 reg add "HKLM\SOFTWARE\Wow6432Node\Microsoft\.NETFramework\v4.0.30319" /v SchUseStrongCrypto /t REG_DWORD /d 1 /f >nul 2>&1
@@ -271,30 +275,11 @@ if exist "%temp%\roots.sst" (
     echo    [AVISO] No se pudieron actualizar certificados.
 )
 
-winget source reset --force >nul 2>&1
-if %errorlevel% neq 0 (
-    winget source remove msstore >nul 2>&1
-    winget source remove winget >nul 2>&1
-    winget source add winget "https://cdn.winget.microsoft.com/cache" --accept-source-agreements >nul 2>&1
-    winget source add msstore "https://storeedgefd.dsx.mp.microsoft.com/v9.0" --accept-source-agreements >nul 2>&1
-)
-winget source update --accept-source-agreements >nul 2>&1
-
-set "WINGET_OK=0"
-winget --version >nul 2>&1
-if %errorlevel% equ 0 (
-    echo n | winget list --accept-source-agreements >nul 2>&1
-    set "WINGET_OK=1"
-    echo    [OK] Winget listo.
-) else (
-    echo    [AVISO] Winget no disponible. Se usara descarga directa.
-)
-
 :: =========================================================
-:: 4. CONFIGURACION ENERGIA
+:: 5. CONFIGURACION ENERGIA
 :: =========================================================
 echo.
-echo  [4/6] Configurando Energia...
+echo  [5/7] Configurando Energia...
 
 powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >nul 2>&1
 if %errorlevel% neq 0 (
@@ -309,10 +294,10 @@ powercfg -h off >nul 2>&1
 echo    [OK] Energia maxima configurada.
 
 :: =========================================================
-:: 5. SOPORTE TECNICO CITYPC
+:: 6. SOPORTE TECNICO CITYPC
 :: =========================================================
 echo.
-echo  [5/6] Instalando Soporte Tecnico CityPC...
+echo  [6/7] Instalando Soporte Tecnico CityPC...
 
 if not exist "C:\CityPC" mkdir "C:\CityPC"
 
@@ -358,11 +343,11 @@ goto :eof
 :skip_acceso_soporte
 
 :: =========================================================
-:: 6. INSTALACION DE SOFTWARE (NINITE)
+:: 7. INSTALACION DE SOFTWARE (NINITE)
 :: =========================================================
 echo.
 echo  ============================================================
-echo    [6/6] INSTALANDO PROGRAMAS
+echo    [7/7] INSTALANDO PROGRAMAS
 echo  ============================================================
 echo.
 
@@ -377,201 +362,15 @@ if not defined NINITE_SRC (
 )
 
 echo    Instalando Chrome, Adobe Reader, WinRAR y Zoom...
-echo    Esto puede tardar varios minutos. No cierre esta ventana.
+echo    Se abrira Ninite. Espere a que termine...
 echo.
 
-start /wait "" "!NINITE_SRC!" /silent
+start /wait "" "!NINITE_SRC!"
 timeout /t 5 /nobreak >nul 2>&1
 
 echo    [OK] Ninite finalizo la instalacion.
 
 goto :resumen_final
-
-:: ==========================================================
-:: CHROME
-:: ==========================================================
-:instalar_chrome
-echo  [^>] Google Chrome:
-echo     - Instalando...
-
-if "!WINGET_OK!"=="1" (
-    winget install --id Google.Chrome -e --silent --accept-package-agreements --accept-source-agreements --force >nul 2>&1
-    timeout /t 5 /nobreak >nul 2>&1
-)
-
-set "CHROME_EXE="
-if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" set "CHROME_EXE=C:\Program Files\Google\Chrome\Application\chrome.exe"
-if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" set "CHROME_EXE=C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
-
-if not defined CHROME_EXE (
-    echo     - Descargando instalador directo...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://dl.google.com/chrome/install/latest/chrome_installer.exe' -OutFile \"$env:TEMP\chrome_setup.exe\" -UseBasicParsing -TimeoutSec 120" >nul 2>&1
-    if exist "%temp%\chrome_setup.exe" (
-        start /wait "" "%temp%\chrome_setup.exe" /silent /install
-        timeout /t 15 /nobreak >nul 2>&1
-        del /F /Q "%temp%\chrome_setup.exe" >nul 2>&1
-    )
-)
-
-set "CHROME_EXE="
-if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" set "CHROME_EXE=C:\Program Files\Google\Chrome\Application\chrome.exe"
-if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" set "CHROME_EXE=C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
-
-if defined CHROME_EXE (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "$ws=New-Object -COM WScript.Shell; $s=$ws.CreateShortcut('!DESKTOP!\Google Chrome.lnk'); $s.TargetPath='!CHROME_EXE!'; $s.Save()" >nul 2>&1
-    echo     - [OK] Chrome instalado.
-) else (
-    echo     - [ERROR] No se pudo instalar Chrome.
-)
-goto :eof
-
-:: ==========================================================
-:: ADOBE READER
-:: ==========================================================
-:instalar_adobe
-echo  [^>] Adobe Acrobat Reader:
-echo     - Instalando...
-
-if "!WINGET_OK!"=="1" (
-    winget install --id Adobe.Acrobat.Reader.64-bit -e --silent --accept-package-agreements --accept-source-agreements --force >nul 2>&1
-    timeout /t 8 /nobreak >nul 2>&1
-)
-
-call :detectar_adobe
-if not defined ADOBE_EXE (
-    if "!WINGET_OK!"=="1" (
-        echo     - Intentando version 32-bit...
-        winget install --id Adobe.Acrobat.Reader.32-bit -e --silent --accept-package-agreements --accept-source-agreements --force >nul 2>&1
-        timeout /t 8 /nobreak >nul 2>&1
-    )
-)
-
-call :detectar_adobe
-if not defined ADOBE_EXE (
-    echo     - Descargando instalador 64-bit...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://ardownload2.adobe.com/pub/adobe/reader/win/AcrobatDC/2300820555/AcroRdrDCx64_en_US.exe' -OutFile \"$env:TEMP\adobe_setup.exe\" -UseBasicParsing -TimeoutSec 180" >nul 2>&1
-    if exist "%temp%\adobe_setup.exe" (
-        start /wait "" "%temp%\adobe_setup.exe" /sAll /rs /msi EULA_ACCEPT=YES
-        timeout /t 15 /nobreak >nul 2>&1
-        del /F /Q "%temp%\adobe_setup.exe" >nul 2>&1
-    )
-)
-
-call :detectar_adobe
-if not defined ADOBE_EXE (
-    echo     - Descargando instalador 32-bit...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://ardownload2.adobe.com/pub/adobe/reader/win/AcrobatDC/2300820555/AcroRdrDC2300820555_en_US.exe' -OutFile \"$env:TEMP\adobe32_setup.exe\" -UseBasicParsing -TimeoutSec 180" >nul 2>&1
-    if exist "%temp%\adobe32_setup.exe" (
-        start /wait "" "%temp%\adobe32_setup.exe" /sAll /rs /msi EULA_ACCEPT=YES
-        timeout /t 15 /nobreak >nul 2>&1
-        del /F /Q "%temp%\adobe32_setup.exe" >nul 2>&1
-    )
-)
-
-call :detectar_adobe
-if defined ADOBE_EXE (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "$ws=New-Object -COM WScript.Shell; $s=$ws.CreateShortcut('!DESKTOP!\Adobe Acrobat Reader.lnk'); $s.TargetPath='!ADOBE_EXE!'; $s.Save()" >nul 2>&1
-    echo     - [OK] Adobe Reader instalado.
-) else (
-    echo     - [ERROR] No se pudo instalar Adobe Reader.
-)
-goto :eof
-
-:detectar_adobe
-set "ADOBE_EXE="
-if exist "C:\Program Files\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe"       set "ADOBE_EXE=C:\Program Files\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe"
-if exist "C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe" set "ADOBE_EXE=C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe"
-if exist "C:\Program Files\Adobe\Acrobat DC\Acrobat\Acrobat.exe"              set "ADOBE_EXE=C:\Program Files\Adobe\Acrobat DC\Acrobat\Acrobat.exe"
-if exist "C:\Program Files (x86)\Adobe\Acrobat DC\Acrobat\Acrobat.exe"        set "ADOBE_EXE=C:\Program Files (x86)\Adobe\Acrobat DC\Acrobat\Acrobat.exe"
-if exist "C:\Program Files\Adobe\Acrobat Reader DC\Reader\AcroRd64.exe"       set "ADOBE_EXE=C:\Program Files\Adobe\Acrobat Reader DC\Reader\AcroRd64.exe"
-if exist "C:\Program Files\Adobe\Acrobat Reader\Reader\AcroRd32.exe"          set "ADOBE_EXE=C:\Program Files\Adobe\Acrobat Reader\Reader\AcroRd32.exe"
-if exist "C:\Program Files (x86)\Adobe\Acrobat Reader\Reader\AcroRd32.exe"    set "ADOBE_EXE=C:\Program Files (x86)\Adobe\Acrobat Reader\Reader\AcroRd32.exe"
-goto :eof
-
-:: ==========================================================
-:: WINRAR
-:: ==========================================================
-:instalar_winrar
-echo  [^>] WinRAR:
-echo     - Instalando...
-
-if "!WINGET_OK!"=="1" (
-    winget install --id RARLab.WinRAR -e --silent --accept-package-agreements --accept-source-agreements --force >nul 2>&1
-    timeout /t 5 /nobreak >nul 2>&1
-)
-
-if not exist "C:\Program Files\WinRAR\WinRAR.exe" (
-    echo     - Descargando instalador directo...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://www.rarlab.com/rar/winrar-x64-710.exe' -OutFile \"$env:TEMP\winrar_setup.exe\" -UseBasicParsing -TimeoutSec 120" >nul 2>&1
-    if exist "%temp%\winrar_setup.exe" (
-        start /wait "" "%temp%\winrar_setup.exe" /S
-        timeout /t 8 /nobreak >nul 2>&1
-        del /F /Q "%temp%\winrar_setup.exe" >nul 2>&1
-    )
-)
-
-timeout /t 3 /nobreak >nul 2>&1
-if exist "C:\Program Files\WinRAR\WinRAR.exe" (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "$ws=New-Object -COM WScript.Shell; $s=$ws.CreateShortcut('!DESKTOP!\WinRAR.lnk'); $s.TargetPath='C:\Program Files\WinRAR\WinRAR.exe'; $s.Save()" >nul 2>&1
-    echo     - [OK] WinRAR instalado.
-) else (
-    echo     - [ERROR] No se pudo instalar WinRAR.
-)
-goto :eof
-
-:: ==========================================================
-:: ZOOM
-:: ==========================================================
-:instalar_zoom
-echo  [^>] Zoom:
-echo     - Instalando...
-
-taskkill /F /IM Zoom.exe >nul 2>&1
-taskkill /F /IM ZoomInstaller.exe >nul 2>&1
-taskkill /F /IM Zoom_launcher.exe >nul 2>&1
-
-if "!WINGET_OK!"=="1" (
-    winget install --id Zoom.Zoom -e --silent --override "/quiet /norestart ZoomAutoUpdate=true ZConfig=Lang=es" --accept-package-agreements --accept-source-agreements --force >nul 2>&1
-    timeout /t 8 /nobreak >nul 2>&1
-    taskkill /F /IM Zoom.exe >nul 2>&1
-    taskkill /F /IM Zoom_launcher.exe >nul 2>&1
-)
-
-call :detectar_zoom
-if not defined ZOOM_EXE (
-    echo     - Descargando instalador directo...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://zoom.us/client/latest/ZoomInstallerFull.exe' -OutFile \"$env:TEMP\zoom_setup.exe\" -UseBasicParsing -TimeoutSec 120" >nul 2>&1
-    if exist "%temp%\zoom_setup.exe" (
-        start /wait "" "%temp%\zoom_setup.exe" /quiet /norestart ZoomAutoUpdate=true ZConfig=Lang=es
-        timeout /t 12 /nobreak >nul 2>&1
-        del /F /Q "%temp%\zoom_setup.exe" >nul 2>&1
-    )
-)
-
-timeout /t 3 /nobreak >nul 2>&1
-taskkill /F /IM Zoom.exe >nul 2>&1
-taskkill /F /IM Zoom_launcher.exe >nul 2>&1
-
-call :detectar_zoom
-if defined ZOOM_EXE (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "$ws=New-Object -COM WScript.Shell; $s=$ws.CreateShortcut('!DESKTOP!\Zoom.lnk'); $s.TargetPath='!ZOOM_EXE!'; $s.Save()" >nul 2>&1
-    echo     - [OK] Zoom instalado.
-) else (
-    echo     - [ERROR] No se pudo instalar Zoom.
-)
-goto :eof
-
-:detectar_zoom
-set "ZOOM_EXE="
-if exist "C:\Program Files\Zoom\bin\Zoom.exe" set "ZOOM_EXE=C:\Program Files\Zoom\bin\Zoom.exe"
-if exist "C:\Program Files (x86)\Zoom\bin\Zoom.exe" set "ZOOM_EXE=C:\Program Files (x86)\Zoom\bin\Zoom.exe"
-if exist "C:\Program Files\Zoom\Zoom.exe" set "ZOOM_EXE=C:\Program Files\Zoom\Zoom.exe"
-if exist "C:\Program Files (x86)\Zoom\Zoom.exe" set "ZOOM_EXE=C:\Program Files (x86)\Zoom\Zoom.exe"
-for /d %%U in ("C:\Users\*") do (
-    if exist "%%~U\AppData\Roaming\Zoom\bin\Zoom.exe" set "ZOOM_EXE=%%~U\AppData\Roaming\Zoom\bin\Zoom.exe"
-    if exist "%%~U\AppData\Local\Zoom\bin\Zoom.exe" set "ZOOM_EXE=%%~U\AppData\Local\Zoom\bin\Zoom.exe"
-)
-goto :eof
 
 :: =========================================================
 :: RESUMEN FINAL
@@ -607,31 +406,31 @@ if "!R_CHROME!"=="1" (
     echo   [XX]  Google Chrome          - NO se pudo instalar
 )
 
-call :detectar_adobe
-if defined ADOBE_EXE (
-    echo   [OK]  Adobe Acrobat Reader   - Instalado
-) else (
-    echo   [XX]  Adobe Acrobat Reader   - NO se pudo instalar
-)
-
 if exist "C:\Program Files\WinRAR\WinRAR.exe" (
     echo   [OK]  WinRAR                 - Instalado
 ) else (
     echo   [XX]  WinRAR                 - NO se pudo instalar
 )
 
-call :detectar_zoom
-if defined ZOOM_EXE (
-    echo   [OK]  Zoom                   - Instalado
-) else (
-    echo   [XX]  Zoom                   - NO se pudo instalar
-)
-
 echo.
 echo  ============================================================
 echo.
-echo   Si algo marca [XX] puede intentar instalarlo manualmente.
+echo   Abriendo Updates opcionales y pagina de Adobe Reader...
 echo.
+
+:: Abrir Windows Update - Actualizaciones opcionales
+start "" ms-settings:windowsupdate-optionalupdates
+
+:: Abrir pagina de Adobe Reader en Chrome
+set "CHROME_EXE="
+if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" set "CHROME_EXE=C:\Program Files\Google\Chrome\Application\chrome.exe"
+if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" set "CHROME_EXE=C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
+if defined CHROME_EXE (
+    start "" "!CHROME_EXE!" "https://get.adobe.com/reader/"
+) else (
+    start "" "https://get.adobe.com/reader/"
+)
+
 echo   Presione cualquier tecla para cerrar...
 pause >nul
 exit
