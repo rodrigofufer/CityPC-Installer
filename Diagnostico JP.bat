@@ -14,7 +14,7 @@ set "WIFI_PASS=CitypcCitypc"
 :: =========================================================
 :: VERSION LOCAL Y AUTO-UPDATE
 :: =========================================================
-set "LOCAL_VER=1"
+set "LOCAL_VER=2"
 set "GITHUB_RAW=https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/main"
 set "REMOTE_FILE=Diagnostico_JP.bat"
 set "VERSION_FILE=version_diagnostico.txt"
@@ -107,6 +107,30 @@ set /p "TICKET=Ingrese # Ticket (5 digitos): "
 if "%TICKET:~4,1%"=="" goto ERROR_TICKET
 if not "%TICKET:~5,1%"=="" goto ERROR_TICKET
 
+:TIPO_EQUIPO
+echo.
+echo Tipo de equipo:
+echo   1. Laptop
+echo   2. CPU (Escritorio)
+echo   3. AIO (All-in-One)
+echo.
+set "TIPO="
+set /p "TIPO=Seleccione (1, 2 o 3): "
+
+if "!TIPO!"=="1" set "TIPO_NOMBRE=Laptop"
+if "!TIPO!"=="2" set "TIPO_NOMBRE=CPU"
+if "!TIPO!"=="3" set "TIPO_NOMBRE=AIO"
+
+if not defined TIPO_NOMBRE (
+    echo.
+    echo [ERROR] Opcion invalida. Seleccione 1, 2 o 3.
+    set "TIPO_NOMBRE="
+    goto TIPO_EQUIPO
+)
+
+echo.
+echo [OK] Equipo: !TIPO_NOMBRE! - Ticket: %TICKET%
+
 :: ---------------------------------------------------------
 :: 2. CONEXION WI-FI
 :: ---------------------------------------------------------
@@ -156,6 +180,7 @@ if exist "%psfile%" del "%psfile%"
 echo $ErrorActionPreference = 'SilentlyContinue' >> "%psfile%"
 echo [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 >> "%psfile%"
 echo $ticket = "%TICKET%" >> "%psfile%"
+echo $tipoEquipo = "%TIPO_NOMBRE%" >> "%psfile%"
 echo $webhookUrl = "%WEBHOOK_URL%" >> "%psfile%"
 echo $path = [Environment]::GetFolderPath('Desktop') >> "%psfile%"
 echo $archivo = "$path\Reporte_Ticket_$ticket.txt" >> "%psfile%"
@@ -171,6 +196,7 @@ echo Add-Type -AssemblyName System.Drawing >> "%psfile%"
 :: --- ENCABEZADO ---
 echo "==========================================" ^| Out-File -FilePath $archivo -Encoding UTF8 >> "%psfile%"
 echo " DIAGNOSTICO DE SISTEMA - TICKET $ticket" ^| Out-File -FilePath $archivo -Append -Encoding UTF8 >> "%psfile%"
+echo " TIPO DE EQUIPO: $tipoEquipo" ^| Out-File -FilePath $archivo -Append -Encoding UTF8 >> "%psfile%"
 echo "==========================================" ^| Out-File -FilePath $archivo -Append -Encoding UTF8 >> "%psfile%"
 echo "" ^| Out-File -FilePath $archivo -Append -Encoding UTF8 >> "%psfile%"
 
@@ -668,6 +694,7 @@ echo Write-Host "`n>>> ENVIANDO A LA NUBE (n8n)..." -ForegroundColor Cyan >> "%p
 echo $cleanReport = [System.IO.File]::ReadAllText($archivo) >> "%psfile%"
 echo $payload = @{ >> "%psfile%"
 echo     ticket  = $ticket >> "%psfile%"
+echo     tipo    = $tipoEquipo >> "%psfile%"
 echo     fecha   = (Get-Date -Format "dd/MM/yyyy HH:mm") >> "%psfile%"
 echo     tecnico = "" >> "%psfile%"
 echo     reporte = $cleanReport >> "%psfile%"
