@@ -7,8 +7,8 @@ setlocal enabledelayedexpansion
 :: 1. CONFIGURACION GENERAL (EDITAR AQUI)
 :: =========================================================
 set "WEBHOOK_URL=https://n8n.srv1256135.hstgr.cloud/webhook/diagnostico-citypc"
-set "WIFI_SSID=CityPC 2.4ghz"
-set "WIFI_PASS=Citypc20#"
+set "WIFI_SSID=Citypc Slow"
+set "WIFI_PASS=CitypcCitypc"
 :: =========================================================
 
 :: =========================================================
@@ -16,7 +16,7 @@ set "WIFI_PASS=Citypc20#"
 :: =========================================================
 set "LOCAL_VER=3"
 set "GITHUB_RAW=https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/main"
-set "REMOTE_FILE=Diagnostico_Urano.bat"
+set "REMOTE_FILE=Diagnostico_JP.bat"
 set "VERSION_FILE=version_diagnostico.txt"
 
 cls
@@ -71,17 +71,17 @@ echo [!!] Nueva version disponible: V!REMOTE_VER! ^(actual: V%LOCAL_VER%^)
 echo.
 echo Descargando actualizacion...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try{ (New-Object Net.WebClient).DownloadFile('%GITHUB_RAW%/%REMOTE_FILE%','%temp%\Diagnostico_Urano_update.bat') }catch{}" >nul 2>&1
+    "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try{ (New-Object Net.WebClient).DownloadFile('%GITHUB_RAW%/%REMOTE_FILE%','%temp%\Diagnostico_JP_update.bat') }catch{}" >nul 2>&1
 
-if not exist "%temp%\Diagnostico_Urano_update.bat" (
+if not exist "%temp%\Diagnostico_JP_update.bat" (
     echo [ERROR] No se pudo descargar. Usando V%LOCAL_VER%.
     echo.
     goto :skip_update_diag
 )
 
 :: Reemplazar archivo actual
-copy /Y "%temp%\Diagnostico_Urano_update.bat" "%~dp0Diagnostico_Urano.bat" >nul 2>&1
-del /F /Q "%temp%\Diagnostico_Urano_update.bat" >nul 2>&1
+copy /Y "%temp%\Diagnostico_JP_update.bat" "%~dp0Diagnostico_JP.bat" >nul 2>&1
+del /F /Q "%temp%\Diagnostico_JP_update.bat" >nul 2>&1
 
 echo.
 echo [OK] Actualizado a V!REMOTE_VER!. Reiniciando...
@@ -89,7 +89,7 @@ echo.
 timeout /t 2 /nobreak >nul 2>&1
 
 :: Reiniciar
-start "" "%~dp0Diagnostico_Urano.bat"
+start "" "%~dp0Diagnostico_JP.bat"
 exit
 
 :skip_update_diag
