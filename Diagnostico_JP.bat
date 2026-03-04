@@ -14,7 +14,7 @@ set "WIFI_PASS=CitypcCitypc"
 :: =========================================================
 :: VERSION LOCAL Y AUTO-UPDATE
 :: =========================================================
-set "LOCAL_VER=3"
+set "LOCAL_VER=4"
 set "GITHUB_RAW=https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/main"
 set "REMOTE_FILE=Diagnostico_JP.bat"
 set "VERSION_FILE=version_diagnostico.txt"

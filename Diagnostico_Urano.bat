@@ -14,10 +14,50 @@ set "WIFI_PASS=Citypc20#"
 :: =========================================================
 :: VERSION LOCAL Y AUTO-UPDATE
 :: =========================================================
-set "LOCAL_VER=3"
+set "LOCAL_VER=4"
 set "GITHUB_RAW=https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/main"
 set "REMOTE_FILE=Diagnostico_Urano.bat"
 set "VERSION_FILE=version_diagnostico.txt"
+
+:: =========================================================
+:: CONEXION WI-FI (antes de verificar actualizaciones)
+:: =========================================================
+echo.
+echo Conectando a Wi-Fi "%WIFI_SSID%"...
+set "WIFI_XML=%temp%\wifi_config.xml"
+if exist "%WIFI_XML%" del "%WIFI_XML%"
+(
+echo ^<?xml version="1.0"?^>
+echo ^<WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1"^>
+echo   ^<name^>%WIFI_SSID%^</name^>
+echo   ^<SSIDConfig^>
+echo     ^<SSID^>
+echo       ^<name^>%WIFI_SSID%^</name^>
+echo     ^</SSID^>
+echo   ^</SSIDConfig^>
+echo   ^<connectionType^>ESS^</connectionType^>
+echo   ^<connectionMode^>auto^</connectionMode^>
+echo   ^<MSM^>
+echo     ^<security^>
+echo       ^<authEncryption^>
+echo         ^<authentication^>WPA2PSK^</authentication^>
+echo         ^<encryption^>AES^</encryption^>
+echo         ^<useOneX^>false^</useOneX^>
+echo       ^</authEncryption^>
+echo       ^<sharedKey^>
+echo         ^<keyType^>passPhrase^</keyType^>
+echo         ^<protected^>false^</protected^>
+echo         ^<keyMaterial^>%WIFI_PASS%^</keyMaterial^>
+echo       ^</sharedKey^>
+echo     ^</security^>
+echo   ^</MSM^>
+echo ^</WLANProfile^>
+) > "%WIFI_XML%"
+netsh wlan add profile filename="%WIFI_XML%" >nul
+netsh wlan connect name="%WIFI_SSID%" >nul
+del "%WIFI_XML%"
+echo [OK] Perfil Wi-Fi configurado.
+echo.
 
 cls
 echo.
@@ -131,46 +171,8 @@ if not defined TIPO_NOMBRE (
 echo.
 echo [OK] Equipo: !TIPO_NOMBRE! - Ticket: %TICKET%
 
-:: ---------------------------------------------------------
-:: 2. CONEXION WI-FI
-:: ---------------------------------------------------------
 echo.
-echo [1/8] Conectando a Wi-Fi "%WIFI_SSID%"...
-set "WIFI_XML=%temp%\wifi_config.xml"
-if exist "%WIFI_XML%" del "%WIFI_XML%"
-(
-echo ^<?xml version="1.0"?^>
-echo ^<WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1"^>
-echo   ^<name^>%WIFI_SSID%^</name^>
-echo   ^<SSIDConfig^>
-echo     ^<SSID^>
-echo       ^<name^>%WIFI_SSID%^</name^>
-echo     ^</SSID^>
-echo   ^</SSIDConfig^>
-echo   ^<connectionType^>ESS^</connectionType^>
-echo   ^<connectionMode^>auto^</connectionMode^>
-echo   ^<MSM^>
-echo     ^<security^>
-echo       ^<authEncryption^>
-echo         ^<authentication^>WPA2PSK^</authentication^>
-echo         ^<encryption^>AES^</encryption^>
-echo         ^<useOneX^>false^</useOneX^>
-echo       ^</authEncryption^>
-echo       ^<sharedKey^>
-echo         ^<keyType^>passPhrase^</keyType^>
-echo         ^<protected^>false^</protected^>
-echo         ^<keyMaterial^>%WIFI_PASS%^</keyMaterial^>
-echo       ^</sharedKey^>
-echo     ^</security^>
-echo   ^</MSM^>
-echo ^</WLANProfile^>
-) > "%WIFI_XML%"
-netsh wlan add profile filename="%WIFI_XML%" >nul
-netsh wlan connect name="%WIFI_SSID%" >nul
-del "%WIFI_XML%"
-
-echo.
-echo [2/8] Preparando herramientas...
+echo [1/8] Preparando herramientas...
 set "psfile=%temp%\diag_v5.ps1"
 if exist "%psfile%" del "%psfile%"
 
