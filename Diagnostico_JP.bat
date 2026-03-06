@@ -14,10 +14,18 @@ set "WIFI_PASS=CitypcCitypc"
 :: =========================================================
 :: VERSION LOCAL Y AUTO-UPDATE
 :: =========================================================
-set "LOCAL_VER=4"
+set "LOCAL_VER=5"
 set "GITHUB_RAW=https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/main"
 set "REMOTE_FILE=Diagnostico_JP.bat"
 set "VERSION_FILE=version_diagnostico.txt"
+
+:: Si viene de un auto-update, saltar verificacion para evitar loop
+if "%~1"=="--updated" (
+    echo.
+    echo [OK] Actualizado correctamente. Continuando...
+    echo.
+    goto :skip_update_diag
+)
 
 cls
 echo.
@@ -36,9 +44,9 @@ if %errorlevel% neq 0 (
     goto :skip_update_diag
 )
 
-:: Descargar version_diagnostico.txt de GitHub
+:: Descargar version_diagnostico.txt de GitHub (con timeout de 15 segundos)
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try{ (New-Object Net.WebClient).DownloadFile('%GITHUB_RAW%/%VERSION_FILE%','%temp%\citypc_ver_diag.txt') }catch{}" >nul 2>&1
+    "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try{ Invoke-WebRequest -Uri '%GITHUB_RAW%/%VERSION_FILE%' -OutFile '%temp%\citypc_ver_diag.txt' -TimeoutSec 15 -UseBasicParsing }catch{}" >nul 2>&1
 
 if not exist "%temp%\citypc_ver_diag.txt" (
     echo [AVISO] No se pudo verificar version. Usando V%LOCAL_VER%.
@@ -51,7 +59,8 @@ set "REMOTE_VER="
 set /p REMOTE_VER=<"%temp%\citypc_ver_diag.txt"
 del /F /Q "%temp%\citypc_ver_diag.txt" >nul 2>&1
 
-for /f "tokens=1 delims= " %%V in ("!REMOTE_VER!") do set "REMOTE_VER=%%V"
+:: Limpiar espacios, tabs y caracteres invisibles
+for /f "tokens=1 delims= 	" %%V in ("!REMOTE_VER!") do set "REMOTE_VER=%%V"
 
 if not defined REMOTE_VER (
     echo [AVISO] No se pudo leer version remota. Usando V%LOCAL_VER%.
@@ -66,12 +75,12 @@ if "!REMOTE_VER!"=="!LOCAL_VER!" (
     goto :skip_update_diag
 )
 
-:: Hay version nueva - descargar
+:: Hay version nueva - descargar (con timeout de 30 segundos)
 echo [!!] Nueva version disponible: V!REMOTE_VER! ^(actual: V%LOCAL_VER%^)
 echo.
 echo Descargando actualizacion...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try{ (New-Object Net.WebClient).DownloadFile('%GITHUB_RAW%/%REMOTE_FILE%','%temp%\Diagnostico_JP_update.bat') }catch{}" >nul 2>&1
+    "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try{ Invoke-WebRequest -Uri '%GITHUB_RAW%/%REMOTE_FILE%' -OutFile '%temp%\Diagnostico_JP_update.bat' -TimeoutSec 30 -UseBasicParsing }catch{}" >nul 2>&1
 
 if not exist "%temp%\Diagnostico_JP_update.bat" (
     echo [ERROR] No se pudo descargar. Usando V%LOCAL_VER%.
@@ -88,8 +97,8 @@ echo [OK] Actualizado a V!REMOTE_VER!. Reiniciando...
 echo.
 timeout /t 2 /nobreak >nul 2>&1
 
-:: Reiniciar
-start "" "%~dp0Diagnostico_JP.bat"
+:: Reiniciar con flag --updated para evitar loop de actualizacion
+start "" cmd /c ""%~dp0Diagnostico_JP.bat" --updated"
 exit
 
 :skip_update_diag
