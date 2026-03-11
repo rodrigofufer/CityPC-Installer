@@ -8,7 +8,7 @@ mode con: cols=100 lines=50
 :: =========================================================
 :: VERSION LOCAL
 :: =========================================================
-set "LOCAL_VER=47"
+set "LOCAL_VER=48"
 set "GITHUB_RAW=https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/main"
 
 :: =========================================================
