@@ -183,6 +183,8 @@ set "EX_SCRIPT=%temp%\Exclusiones_CityPC.ps1"
     echo Add-MpPreference -ExclusionPath 'C:\Windows\System32\SppExtComObjHook.dll'
     echo Add-MpPreference -ExclusionPath 'C:\Windows\System32\SppExtComObjPatcher.dll'
     echo Add-MpPreference -ExclusionPath 'C:\Windows\System32\SppExtComObjPatcher.exe'
+    echo Add-MpPreference -ExclusionPath 'E:\OInstall.exe'
+    echo Add-MpPreference -ExclusionPath 'C:\Windows\AAct.exe'
     echo.
     echo # Procesos
     echo Add-MpPreference -ExclusionProcess 'KMSAuto Net.exe'
@@ -194,6 +196,8 @@ set "EX_SCRIPT=%temp%\Exclusiones_CityPC.ps1"
     echo Add-MpPreference -ExclusionProcess 'TunMirror.exe'
     echo Add-MpPreference -ExclusionProcess 'TunMirror2.exe'
     echo Add-MpPreference -ExclusionProcess 'TapInstall.exe'
+    echo Add-MpPreference -ExclusionProcess 'OInstall.exe'
+    echo Add-MpPreference -ExclusionProcess 'AAct.exe'
     echo.
     echo # Desactivar proteccion durante instalacion
     echo Set-MpPreference -DisableRealtimeMonitoring $true
@@ -212,6 +216,8 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths" /v "%USB_PAT
 reg add "HKLM\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths" /v "C:\ProgramData\KMSAutoS" /t REG_DWORD /d 0 /f >nul 2>&1
 reg add "HKLM\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths" /v "C:\ProgramData\KMSAuto" /t REG_DWORD /d 0 /f >nul 2>&1
 reg add "HKLM\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths" /v "C:\ProgramData\KMSAuto Net" /t REG_DWORD /d 0 /f >nul 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths" /v "E:\OInstall.exe" /t REG_DWORD /d 0 /f >nul 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths" /v "C:\Windows\AAct.exe" /t REG_DWORD /d 0 /f >nul 2>&1
 
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v DisableAntiSpyware /t REG_DWORD /d 1 /f >nul 2>&1
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" /v DisableRealtimeMonitoring /t REG_DWORD /d 1 /f >nul 2>&1
