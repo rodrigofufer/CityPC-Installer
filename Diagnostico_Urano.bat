@@ -14,7 +14,7 @@ set "WIFI_PASS=Citypc20#"
 :: =========================================================
 :: VERSION LOCAL Y AUTO-UPDATE
 :: =========================================================
-set "LOCAL_VER=5"
+set "LOCAL_VER=6"
 set "GITHUB_RAW=https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/main"
 set "REMOTE_FILE=Diagnostico_Urano.bat"
 set "VERSION_FILE=version_diagnostico.txt"
