@@ -14,7 +14,7 @@ set "WIFI_PASS=Citypc20#"
 :: =========================================================
 :: VERSION LOCAL Y AUTO-UPDATE
 :: =========================================================
-set "LOCAL_VER=6"
+set "LOCAL_VER=7"
 set "GITHUB_RAW=https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/main"
 set "REMOTE_FILE=Diagnostico_Urano.bat"
 set "VERSION_FILE=version_diagnostico.txt"
@@ -182,7 +182,7 @@ echo [OK] Equipo: !TIPO_NOMBRE! - Ticket: %TICKET%
 
 echo.
 echo [1/8] Preparando herramientas...
-set "psfile=%temp%\diag_v5.ps1"
+set "psfile=%temp%\diag_v7_urano.ps1"
 if exist "%psfile%" del "%psfile%"
 
 :: ---------------------------------------------------------
@@ -285,7 +285,7 @@ echo Log-Dual "" >> "%psfile%"
 :: -------------------------------------------------------------------
 :: SECCION 3: MEMORIA RAM
 :: -------------------------------------------------------------------
-echo $mem   = Get-CimInstance Win32_PhysicalMemory >> "%psfile%"
+echo $mem   = @(Get-CimInstance Win32_PhysicalMemory ^| Sort-Object DeviceLocator, BankLabel) >> "%psfile%"
 echo $slots = Get-CimInstance Win32_PhysicalMemoryArray >> "%psfile%"
 echo Log-Dual "=== 3. MEMORIA RAM ===" "Cyan" >> "%psfile%"
 echo $totalMem   = [math]::Round(($mem ^| Measure-Object -Property Capacity -Sum).Sum / 1GB) >> "%psfile%"
@@ -293,6 +293,21 @@ echo $usados     = @($mem).Count >> "%psfile%"
 echo $libresSlot = $slots.MemoryDevices - $usados >> "%psfile%"
 echo Log-Dual "   * Instalada:     $totalMem GB  ($($mem[0].Speed) MHz)" >> "%psfile%"
 echo Log-Dual "   * Ranuras:       $usados Ocupadas / $libresSlot Libres" >> "%psfile%"
+echo $ramTypeMap = @{20='DDR';21='DDR2';22='DDR2 FB-DIMM';24='DDR3';26='DDR4';27='LPDDR';28='LPDDR2';29='LPDDR3';30='LPDDR4';34='DDR5';35='LPDDR5'} >> "%psfile%"
+echo $badSerials = @('UNKNOWN','NONE','N/A','NA','NOT SPECIFIED','NOT AVAILABLE','TO BE FILLED BY O.E.M.','TO BE FILLED BY OEM','DEFAULT STRING') >> "%psfile%"
+echo $moduleIndex = 0 >> "%psfile%"
+echo foreach ($module in $mem) { >> "%psfile%"
+echo     $moduleIndex++ >> "%psfile%"
+echo     $moduleGB = [math]::Round([double]$module.Capacity / 1GB, 2) >> "%psfile%"
+echo     $typeCode = [int]$module.SMBIOSMemoryType >> "%psfile%"
+echo     if ($typeCode -eq 0) { $typeCode = [int]$module.MemoryType } >> "%psfile%"
+echo     $moduleType = if ($ramTypeMap.ContainsKey($typeCode)) { $ramTypeMap[$typeCode] } else { 'Desconocido' } >> "%psfile%"
+echo     $serial = ([string]$module.SerialNumber).Trim() >> "%psfile%"
+echo     $serialUpper = $serial.ToUpperInvariant() >> "%psfile%"
+echo     $serialCompact = ($serial -replace '[\s-]', '').ToUpperInvariant() >> "%psfile%"
+echo     if ([string]::IsNullOrWhiteSpace($serial) -or $badSerials -contains $serialUpper -or $serialCompact -match '^0+$' -or $serialCompact -match '^F+$') { $serial = 'No disponible' } >> "%psfile%"
+echo     Log-Dual ('   * Modulo {0}: {1} GB; Tipo: {2}; Serial: {3}' -f $moduleIndex, $moduleGB, $moduleType, $serial) >> "%psfile%"
+echo } >> "%psfile%"
 echo Log-Dual "" >> "%psfile%"
 
 :: -------------------------------------------------------------------
@@ -489,45 +504,48 @@ echo $preForm.Controls.Add($btnPreOk) >> "%psfile%"
 echo $preForm.ShowDialog() ^| Out-Null >> "%psfile%"
 
 :: ------ DEFINIR FILAS: pares [KeyCode, Texto] ------
-:: Fila numeros + BKSP
+:: Enye se construye en runtime para conservar el BAT en ASCII
+echo $kbEnyeName = [string][char]0x00D1 >> "%psfile%"
 echo $rowNums = @(@('D1','1'),@('D2','2'),@('D3','3'),@('D4','4'),@('D5','5'),@('D6','6'),@('D7','7'),@('D8','8'),@('D9','9'),@('D0','0'),@('Back','BKSP')) >> "%psfile%"
-:: Fila QWERTY
 echo $rowQ = @(@('Q','Q'),@('W','W'),@('E','E'),@('R','R'),@('T','T'),@('Y','Y'),@('U','U'),@('I','I'),@('O','O'),@('P','P')) >> "%psfile%"
-:: Fila ASDF con Enye
-echo $rowA = @(@('A','A'),@('S','S'),@('D','D'),@('F','F'),@('G','G'),@('H','H'),@('J','J'),@('K','K'),@('L','L'),@('OemSemicolon','ENY')) >> "%psfile%"
-:: Fila ZXCV
+echo $rowA = @(@('A','A'),@('S','S'),@('D','D'),@('F','F'),@('G','G'),@('H','H'),@('J','J'),@('K','K'),@('L','L'),@('Enye',$kbEnyeName)) >> "%psfile%"
 echo $rowZ = @(@('Z','Z'),@('X','X'),@('C','C'),@('V','V'),@('B','B'),@('N','N'),@('M','M')) >> "%psfile%"
-
 echo $kbMainRows = @($rowNums, $rowQ, $rowA, $rowZ) >> "%psfile%"
 
-:: Numpad rows
+:: Numpad: solo NumPad0-NumPad9; Insert no cuenta como NumPad0
 echo $rowNP1 = @(@('NumPad7','N7'),@('NumPad8','N8'),@('NumPad9','N9')) >> "%psfile%"
 echo $rowNP2 = @(@('NumPad4','N4'),@('NumPad5','N5'),@('NumPad6','N6')) >> "%psfile%"
 echo $rowNP3 = @(@('NumPad1','N1'),@('NumPad2','N2'),@('NumPad3','N3')) >> "%psfile%"
 echo $rowNP4 = @(,@('NumPad0','N0')) >> "%psfile%"
 echo $kbNumRows = @($rowNP1,$rowNP2,$rowNP3,$rowNP4) >> "%psfile%"
 
-:: Lista de todos los codigos para el reporte final
-echo $kbAllCodes = @('D1','D2','D3','D4','D5','D6','D7','D8','D9','D0','Back','Q','W','E','R','T','Y','U','I','O','P','A','S','D','F','G','H','J','K','L','OemSemicolon','Z','X','C','V','B','N','M') >> "%psfile%"
-echo $kbAllNames = @('1','2','3','4','5','6','7','8','9','0','BKSP','Q','W','E','R','T','Y','U','I','O','P','A','S','D','F','G','H','J','K','L','ENY','Z','X','C','V','B','N','M') >> "%psfile%"
+:: 38 objetivos sin numpad; 48 con numpad
+echo $kbAllCodes = @('D1','D2','D3','D4','D5','D6','D7','D8','D9','D0','Back','Q','W','E','R','T','Y','U','I','O','P','A','S','D','F','G','H','J','K','L','Enye','Z','X','C','V','B','N','M') >> "%psfile%"
+echo $kbAllNames = @('1','2','3','4','5','6','7','8','9','0','BKSP','Q','W','E','R','T','Y','U','I','O','P','A','S','D','F','G','H','J','K','L',$kbEnyeName,'Z','X','C','V','B','N','M') >> "%psfile%"
 echo if ($script:kbNumpad) { >> "%psfile%"
 echo     $kbAllCodes += @('NumPad7','NumPad8','NumPad9','NumPad4','NumPad5','NumPad6','NumPad1','NumPad2','NumPad3','NumPad0') >> "%psfile%"
 echo     $kbAllNames += @('N7','N8','N9','N4','N5','N6','N1','N2','N3','N0') >> "%psfile%"
 echo } >> "%psfile%"
 
+echo $script:kbOutcome = 'NoCompletada' >> "%psfile%"
+echo $script:kbConfirmPending = $false >> "%psfile%"
+echo $script:kbAllowClose = $false >> "%psfile%"
+echo $script:kbMissingFinal = @() >> "%psfile%"
+
 :: ------ VENTANA PRINCIPAL ------
 echo $kbForm = New-Object System.Windows.Forms.Form >> "%psfile%"
 echo $kbForm.FormBorderStyle = 'None' >> "%psfile%"
 echo $kbForm.WindowState = 'Maximized' >> "%psfile%"
+echo $kbForm.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::None >> "%psfile%"
 echo $kbForm.BackColor = [System.Drawing.Color]::FromArgb(18,18,18) >> "%psfile%"
 echo $kbForm.TopMost = $true >> "%psfile%"
 echo $kbForm.KeyPreview = $true >> "%psfile%"
 echo $kbForm.AcceptButton = $null >> "%psfile%"
 echo $kbForm.CancelButton = $null >> "%psfile%"
 
-echo $npAviso = if ($script:kbNumpad) {'  NUMPAD: activa NumLock antes de probar'} else {''} >> "%psfile%"
+echo $npAviso = if ($script:kbNumpad) {'  NUMPAD: active NumLock antes de probar'} else {''} >> "%psfile%"
 echo $kbTitle = New-Object System.Windows.Forms.Label >> "%psfile%"
-echo $kbTitle.Text = "PRUEBA DE TECLADO - ESPANOL  --  Presiona cada tecla  --  Solo click FINALIZAR para salir$npAviso" >> "%psfile%"
+echo $kbTitle.Text = "PRUEBA DE TECLADO - ESPANOL  --  Presione cada tecla  --  Enter: REVISAR / FINALIZAR$npAviso" >> "%psfile%"
 echo $kbTitle.ForeColor = [System.Drawing.Color]::Cyan >> "%psfile%"
 echo $kbTitle.Font = New-Object System.Drawing.Font("Segoe UI", 13, [System.Drawing.FontStyle]::Bold) >> "%psfile%"
 echo $kbTitle.AutoSize = $true >> "%psfile%"
@@ -536,19 +554,20 @@ echo $kbForm.Controls.Add($kbTitle) >> "%psfile%"
 
 echo $kbLabels  = @{} >> "%psfile%"
 echo $kbPressed = [System.Collections.Generic.HashSet[string]]::new() >> "%psfile%"
-echo $kbKeyW = 82; $kbKeyH = 82; $kbGap = 6; $kbStartY = 60 >> "%psfile%"
+echo if ($script:kbNumpad) { $kbKeyW = 64; $kbKeyH = 64; $kbGap = 4 } else { $kbKeyW = 76; $kbKeyH = 70; $kbGap = 5 } >> "%psfile%"
+echo $kbStartY = 55 >> "%psfile%"
 
-:: Dibujar teclas principales
+:: Dibujar teclas principales en un area compatible con 1280x720
 echo foreach ($row in $kbMainRows) { >> "%psfile%"
-echo     $kbX = 40 >> "%psfile%"
+echo     $kbX = if ($script:kbNumpad) {24} else {40} >> "%psfile%"
 echo     foreach ($pair in $row) { >> "%psfile%"
 echo         $kcode = $pair[0]; $ktxt = $pair[1] >> "%psfile%"
 echo         $lbl2 = New-Object System.Windows.Forms.Label >> "%psfile%"
 echo         $lbl2.Text = $ktxt >> "%psfile%"
 echo         $lbl2.BackColor = [System.Drawing.Color]::FromArgb(60,60,60) >> "%psfile%"
 echo         $lbl2.ForeColor = [System.Drawing.Color]::White >> "%psfile%"
-echo         $lbl2.Font = New-Object System.Drawing.Font("Segoe UI", 20, [System.Drawing.FontStyle]::Bold) >> "%psfile%"
-echo         $kw = if ($kcode -eq 'Back') {140} else {$kbKeyW} >> "%psfile%"
+echo         $lbl2.Font = New-Object System.Drawing.Font("Segoe UI", 18, [System.Drawing.FontStyle]::Bold) >> "%psfile%"
+echo         $kw = if ($kcode -eq 'Back') { $(if ($script:kbNumpad) {100} else {120}) } else { $kbKeyW } >> "%psfile%"
 echo         $lbl2.Size = New-Object System.Drawing.Size($kw, $kbKeyH) >> "%psfile%"
 echo         $lbl2.Location = New-Object System.Drawing.Point($kbX, $kbStartY) >> "%psfile%"
 echo         $lbl2.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter >> "%psfile%"
@@ -562,7 +581,7 @@ echo } >> "%psfile%"
 
 :: Dibujar numpad si aplica
 echo if ($script:kbNumpad) { >> "%psfile%"
-echo     $npX0 = 1060; $npY = 60 >> "%psfile%"
+echo     $npX0 = 910; $npY = 55 >> "%psfile%"
 echo     foreach ($nrow in $kbNumRows) { >> "%psfile%"
 echo         $npX = $npX0 >> "%psfile%"
 echo         foreach ($pair in $nrow) { >> "%psfile%"
@@ -571,7 +590,7 @@ echo             $nLbl = New-Object System.Windows.Forms.Label >> "%psfile%"
 echo             $nLbl.Text = $ntxt >> "%psfile%"
 echo             $nLbl.BackColor = [System.Drawing.Color]::FromArgb(60,60,60) >> "%psfile%"
 echo             $nLbl.ForeColor = [System.Drawing.Color]::White >> "%psfile%"
-echo             $nLbl.Font = New-Object System.Drawing.Font("Segoe UI", 20, [System.Drawing.FontStyle]::Bold) >> "%psfile%"
+echo             $nLbl.Font = New-Object System.Drawing.Font("Segoe UI", 18, [System.Drawing.FontStyle]::Bold) >> "%psfile%"
 echo             $nkW = if ($ncode -eq 'NumPad0') {$kbKeyW*2+$kbGap} else {$kbKeyW} >> "%psfile%"
 echo             $nLbl.Size = New-Object System.Drawing.Size($nkW, $kbKeyH) >> "%psfile%"
 echo             $nLbl.Location = New-Object System.Drawing.Point($npX, $npY) >> "%psfile%"
@@ -585,42 +604,120 @@ echo         $npY += $kbKeyH + $kbGap >> "%psfile%"
 echo     } >> "%psfile%"
 echo } >> "%psfile%"
 
-:: KeyDown: bloquear TODO excepto las teclas de prueba. Insert = NumPad0 con NumLock OFF
+echo $kbStatus = New-Object System.Windows.Forms.Label >> "%psfile%"
+echo $kbStatus.ForeColor = [System.Drawing.Color]::White >> "%psfile%"
+echo $kbStatus.Font = New-Object System.Drawing.Font("Segoe UI", 11) >> "%psfile%"
+echo $kbStatus.Size = New-Object System.Drawing.Size(1200, 135) >> "%psfile%"
+echo $kbStatus.Location = New-Object System.Drawing.Point(40, 490) >> "%psfile%"
+echo $kbForm.Controls.Add($kbStatus) >> "%psfile%"
+
+echo function Get-KbDetectedNames { >> "%psfile%"
+echo     $result = @() >> "%psfile%"
+echo     for ($i=0; $i -lt $kbAllCodes.Count; $i++) { if ($kbPressed.Contains($kbAllCodes[$i])) { $result += $kbAllNames[$i] } } >> "%psfile%"
+echo     return $result >> "%psfile%"
+echo } >> "%psfile%"
+echo function Get-KbMissingNames { >> "%psfile%"
+echo     $result = @() >> "%psfile%"
+echo     for ($i=0; $i -lt $kbAllCodes.Count; $i++) { if (-not $kbPressed.Contains($kbAllCodes[$i])) { $result += $kbAllNames[$i] } } >> "%psfile%"
+echo     return $result >> "%psfile%"
+echo } >> "%psfile%"
+echo function Set-KbStatus([string]$instruction) { >> "%psfile%"
+echo     $detected = @(Get-KbDetectedNames) >> "%psfile%"
+echo     $missing = @(Get-KbMissingNames) >> "%psfile%"
+echo     $detectedText = if ($detected.Count -gt 0) { $detected -join ', ' } else { 'Ninguna' } >> "%psfile%"
+echo     $missingText = if ($missing.Count -gt 0) { $missing -join ', ' } else { 'Ninguna' } >> "%psfile%"
+echo     $kbStatus.Text = "Detectadas: $detectedText`r`nNo detectadas: $missingText`r`n$instruction" >> "%psfile%"
+echo } >> "%psfile%"
+echo function Mark-KbTarget([string]$code) { >> "%psfile%"
+echo     if (-not $kbLabels.ContainsKey($code)) { return } >> "%psfile%"
+echo     $isNew = $kbPressed.Add($code) >> "%psfile%"
+echo     if (-not $isNew) { return } >> "%psfile%"
+echo     $kbLabels[$code].BackColor = [System.Drawing.Color]::FromArgb(0,190,0) >> "%psfile%"
+echo     $kbLabels[$code].ForeColor = [System.Drawing.Color]::White >> "%psfile%"
+echo     if ($script:kbConfirmPending) { >> "%psfile%"
+echo         $script:kbConfirmPending = $false >> "%psfile%"
+echo         $kbBtnDone.Text = 'REVISAR / FINALIZAR' >> "%psfile%"
+echo         $kbBtnDone.BackColor = [System.Drawing.Color]::FromArgb(0,130,0) >> "%psfile%"
+echo     } >> "%psfile%"
+echo     Set-KbStatus 'Continue con las pendientes. Enter o boton para revisar.' >> "%psfile%"
+echo } >> "%psfile%"
+echo function Request-KbFinish { >> "%psfile%"
+echo     $missing = @(Get-KbMissingNames) >> "%psfile%"
+echo     if ($missing.Count -eq 0) { >> "%psfile%"
+echo         $script:kbOutcome = 'Completa' >> "%psfile%"
+echo         $script:kbMissingFinal = @() >> "%psfile%"
+echo         $script:kbAllowClose = $true >> "%psfile%"
+echo         $kbForm.Close() >> "%psfile%"
+echo         return >> "%psfile%"
+echo     } >> "%psfile%"
+echo     if (-not $script:kbConfirmPending) { >> "%psfile%"
+echo         $script:kbConfirmPending = $true >> "%psfile%"
+echo         $kbBtnDone.Text = 'FINALIZAR CON PENDIENTES' >> "%psfile%"
+echo         $kbBtnDone.BackColor = [System.Drawing.Color]::FromArgb(180,100,0) >> "%psfile%"
+echo         Set-KbStatus 'Intente las teclas pendientes. Para finalizar con este resultado, presione Enter o el boton otra vez.' >> "%psfile%"
+echo         return >> "%psfile%"
+echo     } >> "%psfile%"
+echo     $script:kbMissingFinal = @($missing) >> "%psfile%"
+echo     $script:kbOutcome = 'Pendientes' >> "%psfile%"
+echo     $script:kbAllowClose = $true >> "%psfile%"
+echo     $kbForm.Close() >> "%psfile%"
+echo } >> "%psfile%"
+
+:: KeyDown: Enter controla revision; solo las teclas objetivo suman avance
 echo $kbForm.Add_KeyDown({ >> "%psfile%"
 echo     $_.SuppressKeyPress = $true >> "%psfile%"
+echo     $_.Handled = $true >> "%psfile%"
+echo     if ($_.KeyCode -eq [System.Windows.Forms.Keys]::Enter) { Request-KbFinish; return } >> "%psfile%"
 echo     $kk = $_.KeyCode.ToString() >> "%psfile%"
-echo     if ($kk -eq 'Insert' -and $kbLabels.ContainsKey('NumPad0')) { $kk = 'NumPad0' } >> "%psfile%"
-echo     if ($kk -eq 'Oemtilde' -or $kk -eq 'OemSemicolon') { $kk = 'OemSemicolon' } >> "%psfile%"
-echo     if ($kbLabels.ContainsKey($kk)) { >> "%psfile%"
-echo         $kbLabels[$kk].BackColor = [System.Drawing.Color]::FromArgb(0,190,0) >> "%psfile%"
-echo         $kbLabels[$kk].ForeColor = [System.Drawing.Color]::White >> "%psfile%"
-echo         $kbPressed.Add($kk) ^| Out-Null >> "%psfile%"
-echo     } >> "%psfile%"
+echo     if ($kk -eq 'Oemtilde' -or $kk -eq 'OemSemicolon') { $kk = 'Enye' } >> "%psfile%"
+echo     Mark-KbTarget $kk >> "%psfile%"
 echo }) >> "%psfile%"
 
 echo $kbBtnDone = New-Object System.Windows.Forms.Button >> "%psfile%"
-echo $kbBtnDone.Text = "FINALIZAR PRUEBA DE TECLADO" >> "%psfile%"
-echo $kbBtnDone.Font = New-Object System.Drawing.Font("Segoe UI", 16, [System.Drawing.FontStyle]::Bold) >> "%psfile%"
-echo $kbBtnDone.Size = New-Object System.Drawing.Size(420, 75) >> "%psfile%"
-echo $kbBtnDone.Location = New-Object System.Drawing.Point(430, 510) >> "%psfile%"
+echo $kbBtnDone.Text = 'REVISAR / FINALIZAR' >> "%psfile%"
+echo $kbBtnDone.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold) >> "%psfile%"
+echo $kbBtnDone.Size = New-Object System.Drawing.Size(380, 70) >> "%psfile%"
+echo $kbBtnDone.Location = New-Object System.Drawing.Point(300, 405) >> "%psfile%"
 echo $kbBtnDone.BackColor = [System.Drawing.Color]::FromArgb(0,130,0) >> "%psfile%"
 echo $kbBtnDone.ForeColor = [System.Drawing.Color]::White >> "%psfile%"
-echo $kbBtnDone.Add_Click({ $kbForm.Close() }) >> "%psfile%"
+echo $kbBtnDone.TabStop = $false >> "%psfile%"
+echo $kbBtnDone.Add_MouseClick({ Request-KbFinish }) >> "%psfile%"
 echo $kbForm.Controls.Add($kbBtnDone) >> "%psfile%"
 
+echo $kbBtnCancel = New-Object System.Windows.Forms.Button >> "%psfile%"
+echo $kbBtnCancel.Text = 'CANCELAR PRUEBA' >> "%psfile%"
+echo $kbBtnCancel.Font = New-Object System.Drawing.Font("Segoe UI", 13, [System.Drawing.FontStyle]::Bold) >> "%psfile%"
+echo $kbBtnCancel.Size = New-Object System.Drawing.Size(260, 70) >> "%psfile%"
+echo $kbBtnCancel.Location = New-Object System.Drawing.Point(700, 405) >> "%psfile%"
+echo $kbBtnCancel.BackColor = [System.Drawing.Color]::FromArgb(150,0,0) >> "%psfile%"
+echo $kbBtnCancel.ForeColor = [System.Drawing.Color]::White >> "%psfile%"
+echo $kbBtnCancel.TabStop = $false >> "%psfile%"
+echo $kbBtnCancel.Add_MouseClick({ $script:kbOutcome = 'NoCompletada'; $script:kbAllowClose = $true; $kbForm.Close() }) >> "%psfile%"
+echo $kbForm.Controls.Add($kbBtnCancel) >> "%psfile%"
+
+echo $kbForm.Add_FormClosing({ >> "%psfile%"
+echo     if (-not $script:kbAllowClose) { >> "%psfile%"
+echo         $answer = [System.Windows.Forms.MessageBox]::Show('La prueba no esta completa. Desea cancelarla?', 'CityPC', [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Warning) >> "%psfile%"
+echo         if ($answer -eq [System.Windows.Forms.DialogResult]::Yes) { >> "%psfile%"
+echo             $script:kbOutcome = 'NoCompletada' >> "%psfile%"
+echo             $script:kbAllowClose = $true >> "%psfile%"
+echo         } else { >> "%psfile%"
+echo             $_.Cancel = $true >> "%psfile%"
+echo         } >> "%psfile%"
+echo     } >> "%psfile%"
+echo }) >> "%psfile%"
+
+echo Set-KbStatus 'Presione cada tecla objetivo. Enter o boton para revisar.' >> "%psfile%"
 echo $kbForm.ShowDialog() ^| Out-Null >> "%psfile%"
 
-:: Reporte de teclas sin probar
-echo $kbMissing = @() >> "%psfile%"
-echo for ($i=0; $i -lt $kbAllCodes.Count; $i++) { >> "%psfile%"
-echo     if (-not $kbPressed.Contains($kbAllCodes[$i])) { $kbMissing += $kbAllNames[$i] } >> "%psfile%"
-echo } >> "%psfile%"
-echo Log-Dual "   * Layout:       Espanol (con Enye)" >> "%psfile%"
+echo Log-Dual "   * Layout:       Espanol (con $kbEnyeName)" >> "%psfile%"
 echo Log-Dual "   * Numpad:       $(if ($script:kbNumpad) {'Si'} else {'No'})" >> "%psfile%"
-echo if ($kbMissing.Count -eq 0) { >> "%psfile%"
-echo     Log-Dual "   * Resultado:    TECLADO OK - Todas las teclas probadas" "Green" >> "%psfile%"
+echo if ($script:kbOutcome -eq 'Completa') { >> "%psfile%"
+echo     Log-Dual "   * Resultado:    TECLADO OK - Todas las teclas objetivo detectadas" "Green" >> "%psfile%"
+echo } elseif ($script:kbOutcome -eq 'Pendientes') { >> "%psfile%"
+echo     Log-Dual "   * Resultado:    No respondieron tras reintento: $($script:kbMissingFinal -join ', ')" "Yellow" >> "%psfile%"
 echo } else { >> "%psfile%"
-echo     Log-Dual "   * Sin probar:   $($kbMissing -join ', ')" "Yellow" >> "%psfile%"
+echo     Log-Dual "   * Resultado:    PRUEBA NO COMPLETADA" "Yellow" >> "%psfile%"
 echo } >> "%psfile%"
 echo Log-Dual "" >> "%psfile%"
 :: -------------------------------------------------------------------
@@ -690,7 +787,7 @@ echo $script:camRes = "Sin Probar" >> "%psfile%"
 echo $camForm.ShowDialog() ^| Out-Null >> "%psfile%"
 
 :: Cerrar app de camara
-echo if ($camProc -and !$camProc.HasExited) { >> "%psfile%"
+echo if ($camProc -and (-not $camProc.HasExited)) { >> "%psfile%"
 echo     Stop-Process -Name "WindowsCamera" -Force -ErrorAction SilentlyContinue >> "%psfile%"
 echo } >> "%psfile%"
 
@@ -717,33 +814,40 @@ echo     tecnico = "" >> "%psfile%"
 echo     reporte = $cleanReport >> "%psfile%"
 echo } ^| ConvertTo-Json -Depth 5 >> "%psfile%"
 
-echo if (Test-Connection -ComputerName 8.8.8.8 -Count 1 -Quiet) { >> "%psfile%"
-echo     try { >> "%psfile%"
-echo         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 >> "%psfile%"
-echo         $response = Invoke-RestMethod -Uri $webhookUrl -Method Post -Body $payload -ContentType "application/json" -TimeoutSec 15 >> "%psfile%"
-echo         Write-Host "[OK] DATOS SINCRONIZADOS CORRECTAMENTE." -ForegroundColor Green >> "%psfile%"
-echo     } catch { >> "%psfile%"
-echo         if ($_.Exception.Message -like "*time*") { >> "%psfile%"
-echo             Write-Host "[!]  Enviado, pero sin confirmacion rapida del servidor." -ForegroundColor Yellow >> "%psfile%"
-echo         } else { >> "%psfile%"
-echo             Write-Host "[X] ERROR: " + $_.Exception.Message -ForegroundColor Red >> "%psfile%"
-echo         } >> "%psfile%"
-echo     } >> "%psfile%"
-echo } else { >> "%psfile%"
-echo     Write-Host "[X] SIN INTERNET. Reporte guardado solo localmente." -ForegroundColor Red >> "%psfile%"
+echo $syncConfirmed = $false >> "%psfile%"
+echo try { >> "%psfile%"
+echo     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 >> "%psfile%"
+echo     $response = Invoke-RestMethod -Uri $webhookUrl -Method Post -Body $payload -ContentType 'application/json' -TimeoutSec 60 -ErrorAction Stop >> "%psfile%"
+echo     $validResponse = ($null -ne $response) -and (-not ($response -is [System.Array])) -and ($response.ok -is [System.Boolean]) -and ($response.ok -eq $true) -and ([string]$response.code -ceq 'REPAIRSHOPR_COMMENT_CONFIRMED') -and ([string]$response.ticket -ceq [string]$ticket) -and (-not [string]::IsNullOrWhiteSpace([string]$response.comment_id)) -and ($response.hidden -is [System.Boolean]) -and ($response.hidden -eq $true) >> "%psfile%"
+echo     if (-not $validResponse) { throw 'n8n no confirmo el comentario privado en RepairShopr.' } >> "%psfile%"
+echo     $syncConfirmed = $true >> "%psfile%"
+echo     Write-Host '[OK] DATOS SINCRONIZADOS Y COMENTARIO CONFIRMADO.' -ForegroundColor Green >> "%psfile%"
+echo } catch { >> "%psfile%"
+echo     Write-Host '[X] REPORTE LOCAL CREADO, PERO EL SERVIDOR NO CONFIRMO LA SINCRONIZACION.' -ForegroundColor Red >> "%psfile%"
 echo } >> "%psfile%"
+echo if ($syncConfirmed) { exit 0 } >> "%psfile%"
+echo exit 20 >> "%psfile%"
 
 :: Ejecucion y limpieza
 powershell -NoProfile -ExecutionPolicy Bypass -File "%psfile%"
+set "DIAG_EXIT=!errorlevel!"
 del "%psfile%"
 del "%temp%\test_mic.wav" 2>nul
 
 echo.
-echo ==========================================
-echo   PROCESO TERMINADO - PUEDE CERRAR
-echo ==========================================
+if "!DIAG_EXIT!"=="0" (
+    echo ==========================================
+    echo   PROCESO TERMINADO - NUBE CONFIRMADA
+    echo ==========================================
+) else (
+    color 0C
+    echo ==========================================
+    echo   REPORTE LOCAL CREADO - NUBE NO CONFIRMADA
+    echo ==========================================
+    echo Avise a recepcion. No vuelva a ejecutar para evitar duplicados.
+)
 pause
-exit
+exit /b !DIAG_EXIT!
 
 :ERROR_TICKET
 color 0C
