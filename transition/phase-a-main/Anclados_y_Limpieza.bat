@@ -8,7 +8,7 @@ mode con: cols=100 lines=50
 :: =========================================================
 :: VERSION LOCAL Y ACTUALIZADOR COMUN
 :: =========================================================
-set "LOCAL_VER=49"
+set "LOCAL_VER=48"
 set "CITYPC_TOOL_ID=anclados"
 set "CITYPC_RELEASE_TAG=preparacion-v49"
 set "CITYPC_UPDATER_SHA256=02b05836503e43fb61a7ac1b60267a79374ee77e7653c13765c0cf0da798ed38"

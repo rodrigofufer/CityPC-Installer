@@ -1,0 +1,42 @@
+{
+  "schema": 3,
+  "bundleId": "preparacion",
+  "bundleVersion": 49,
+  "tag": "preparacion-v49",
+  "updater": {
+    "file": "CityPC_Updater.ps1",
+    "version": 1,
+    "sha256": "02b05836503e43fb61a7ac1b60267a79374ee77e7653c13765c0cf0da798ed38",
+    "minBytes": 20000,
+    "maxBytes": 60000
+  },
+  "tools": [
+    {
+      "id": "instalador",
+      "file": "Instalador_CityPC.bat",
+      "version": 49,
+      "sha256": "2f6c4cdcaf4c1c8e85f467f086fc24beb93b594dca65fee325dab35d77aff871",
+      "legacySha256": "",
+      "minBytes": 20000,
+      "maxBytes": 30000
+    },
+    {
+      "id": "anclados",
+      "file": "Anclados_y_Limpieza.bat",
+      "version": 49,
+      "sha256": "387518805c60bc4ba4cc1b11236409cfe134a598eb754ff23fd6d8f2aa6b3d45",
+      "legacySha256": "",
+      "minBytes": 19000,
+      "maxBytes": 30000
+    },
+    {
+      "id": "onedrive",
+      "file": "Reactivar_OneDrive.bat",
+      "version": 2,
+      "sha256": "761f8a8073bb368a5b0e0c74aeb795ce45f5187d4e46ab3317e890da887d4071",
+      "legacySha256": "d7566ec9dde9b8c59d3f1b8056ad60952f3773056d20a37925cb492c982ae015",
+      "minBytes": 2000,
+      "maxBytes": 15000
+    }
+  ]
+}
