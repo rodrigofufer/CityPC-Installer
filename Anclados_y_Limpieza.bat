@@ -6,10 +6,12 @@ title CITYPC - ANCLADOS Y LIMPIEZA
 mode con: cols=100 lines=50
 
 :: =========================================================
-:: VERSION LOCAL
+:: VERSION LOCAL Y ACTUALIZADOR COMUN
 :: =========================================================
-set "LOCAL_VER=47"
-set "GITHUB_RAW=https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/main"
+set "LOCAL_VER=48"
+set "CITYPC_TOOL_ID=anclados"
+set "CITYPC_RELEASE_TAG=preparacion-v49"
+set "CITYPC_UPDATER_SHA256=02b05836503e43fb61a7ac1b60267a79374ee77e7653c13765c0cf0da798ed38"
 
 :: =========================================================
 :: 0. VERIFICAR ADMINISTRADOR
@@ -45,7 +47,7 @@ set "USB_PATH=%~dp0"
 if "%USB_PATH:~-1%"=="\" set "USB_PATH=%USB_PATH:~0,-1%"
 
 :: =========================================================
-:: AUTO-UPDATE DESDE GITHUB
+:: AUTO-UPDATE DE BUNDLE COMPLETO
 :: =========================================================
 cls
 echo.
@@ -53,75 +55,12 @@ echo  ============================================================
 echo        CITYPC - ANCLADOS Y LIMPIEZA (V%LOCAL_VER%)
 echo  ============================================================
 echo.
-echo   Verificando si hay una version nueva...
+echo   Verificando paquete de preparacion...
 echo.
-
-:: Verificar internet
-ping 8.8.8.8 -n 1 -w 2000 >nul 2>&1
-if %errorlevel% neq 0 (
-    echo   [AVISO] Sin internet. Usando version actual V%LOCAL_VER%.
-    echo.
-    goto :skip_update
-)
-
-:: Descargar version.txt de GitHub
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try{ (New-Object Net.WebClient).DownloadFile('%GITHUB_RAW%/version.txt','%temp%\citypc_version.txt') }catch{}" >nul 2>&1
-
-if not exist "%temp%\citypc_version.txt" (
-    echo   [AVISO] No se pudo verificar version. Usando V%LOCAL_VER%.
-    echo.
-    goto :skip_update
-)
-
-:: Leer version remota y limpiar
-set "REMOTE_VER="
-set /p REMOTE_VER=<"%temp%\citypc_version.txt"
-del /F /Q "%temp%\citypc_version.txt" >nul 2>&1
-
-:: Limpiar espacios, tabuladores, retornos de carro
-for /f "tokens=1 delims= 	" %%V in ("!REMOTE_VER!") do set "REMOTE_VER=%%V"
-
-if not defined REMOTE_VER (
-    echo   [AVISO] No se pudo leer version remota. Usando V%LOCAL_VER%.
-    echo.
-    goto :skip_update
-)
-
-:: Comparar versiones
-if "!REMOTE_VER!"=="!LOCAL_VER!" (
-    echo   [OK] Version V%LOCAL_VER% es la mas reciente.
-    echo.
-    goto :skip_update
-)
-
-:: Hay version nueva - descargar
-echo   [!!] Nueva version disponible: V!REMOTE_VER! ^(actual: V%LOCAL_VER%^)
-echo.
-echo   Descargando actualizacion...
-
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try{ (New-Object Net.WebClient).DownloadFile('%GITHUB_RAW%/Anclados_y_Limpieza.bat','%temp%\Anclados_y_Limpieza_update.bat') }catch{}" >nul 2>&1
-
-if not exist "%temp%\Anclados_y_Limpieza_update.bat" (
-    echo   [ERROR] No se pudo descargar. Usando V%LOCAL_VER%.
-    echo.
-    goto :skip_update
-)
-
-:: Reemplazar archivo en la USB
-copy /Y "%temp%\Anclados_y_Limpieza_update.bat" "%~dp0Anclados_y_Limpieza.bat" >nul 2>&1
-del /F /Q "%temp%\Anclados_y_Limpieza_update.bat" >nul 2>&1
-
-echo.
-echo   [OK] Actualizado a V!REMOTE_VER!. Reiniciando...
-echo.
-timeout /t 2 /nobreak >nul 2>&1
-
-:: Reiniciar CON permisos de administrador
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "Start-Process cmd -ArgumentList '/c \"^"%~dp0Anclados_y_Limpieza.bat^\"' -Verb RunAs" >nul 2>&1
-exit
+call :citypc_update "%~1" "%~2"
+if "!CITYPC_UPDATE_RC!"=="20" exit
+if "!CITYPC_UPDATE_RC!"=="30" exit
+if "!CITYPC_UPDATE_RC!"=="31" exit
 
 :skip_update
 
@@ -460,3 +399,38 @@ echo.
 echo   Presione cualquier tecla para cerrar...
 pause >nul
 exit
+
+:: ACTUALIZADOR COMUN CITYPC - BUNDLE INMUTABLE Y TRANSACCIONAL
+:: =========================================================
+:citypc_update
+set "CITYPC_UPDATE_RC=0"
+set "CITYPC_UPDATE_RESUME="
+if /I "%~1"=="--citypc-update-resume" set "CITYPC_UPDATE_RESUME=%~2"
+set "CITYPC_UPDATER_PATH=%~dp0CityPC_Updater.ps1"
+set "CITYPC_UPDATER_TMP=%TEMP%\CityPC_Updater_%RANDOM%_%RANDOM%.new"
+set "CITYPC_UPDATER_BAK=%~dp0CityPC_Updater.bootstrap.bak"
+set "CITYPC_UPDATER_OK=0"
+if exist "!CITYPC_UPDATER_PATH!" for /f "usebackq delims=" %%H in (`powershell -NoProfile -Command "try{(Get-FileHash -LiteralPath $env:CITYPC_UPDATER_PATH -Algorithm SHA256).Hash.ToLowerInvariant()}catch{}"`) do if /I "%%H"=="!CITYPC_UPDATER_SHA256!" set "CITYPC_UPDATER_OK=1"
+if "!CITYPC_UPDATER_OK!"=="0" (
+    echo   [INFO] Recuperando actualizador verificado...
+    del /F /Q "!CITYPC_UPDATER_TMP!" >nul 2>&1
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop';[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12;$u=@('https://raw.githubusercontent.com/rodrigofufer/CityPC-Installer/!CITYPC_RELEASE_TAG!/CityPC_Updater.ps1','https://github.com/rodrigofufer/CityPC-Installer/raw/refs/tags/!CITYPC_RELEASE_TAG!/CityPC_Updater.ps1');$ok=$false;foreach($x in $u){1..2|ForEach-Object{if(-not $ok){try{Invoke-WebRequest -Uri ($x+'?bootstrap='+[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()) -OutFile $env:CITYPC_UPDATER_TMP -UseBasicParsing -TimeoutSec 12 -MaximumRedirection 3;if((Get-FileHash -LiteralPath $env:CITYPC_UPDATER_TMP -Algorithm SHA256).Hash.ToLowerInvariant() -eq $env:CITYPC_UPDATER_SHA256){$ok=$true}}catch{};if(-not $ok){Start-Sleep -Seconds 1}}}};if(-not $ok){exit 1}" >nul 2>&1
+    if exist "!CITYPC_UPDATER_TMP!" (
+        if exist "!CITYPC_UPDATER_PATH!" copy /Y "!CITYPC_UPDATER_PATH!" "!CITYPC_UPDATER_BAK!" >nul 2>&1
+        move /Y "!CITYPC_UPDATER_TMP!" "!CITYPC_UPDATER_PATH!" >nul 2>&1
+    )
+    if exist "!CITYPC_UPDATER_PATH!" for /f "usebackq delims=" %%H in (`powershell -NoProfile -Command "try{(Get-FileHash -LiteralPath $env:CITYPC_UPDATER_PATH -Algorithm SHA256).Hash.ToLowerInvariant()}catch{}"`) do if /I "%%H"=="!CITYPC_UPDATER_SHA256!" set "CITYPC_UPDATER_OK=1"
+    if "!CITYPC_UPDATER_OK!"=="0" (
+        if exist "!CITYPC_UPDATER_BAK!" move /Y "!CITYPC_UPDATER_BAK!" "!CITYPC_UPDATER_PATH!" >nul 2>&1
+        if defined CITYPC_UPDATE_RESUME (
+            echo   [ERROR] Reinicio sin actualizador valido. Se detiene para rollback.
+            set "CITYPC_UPDATE_RC=30"
+            exit /b 0
+        )
+        echo   [AVISO] No se pudo recuperar el actualizador. Se usa V!LOCAL_VER!.
+        exit /b 0
+    )
+)
+powershell -NoProfile -ExecutionPolicy Bypass -File "!CITYPC_UPDATER_PATH!" -Mode Check -ToolId "!CITYPC_TOOL_ID!" -CurrentVersion !LOCAL_VER! -TargetPath "%~f0" -ResumeToken "!CITYPC_UPDATE_RESUME!"
+set "CITYPC_UPDATE_RC=!errorlevel!"
+exit /b 0
