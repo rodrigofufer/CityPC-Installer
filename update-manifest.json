@@ -1,0 +1,9 @@
+{
+  "schema": "citypc.usbdiag.update-manifest.v1",
+  "version": 8,
+  "files": {
+    "Diagnostico_CityPC.bat": "a11e57183d3164812d6db6932e30c9ff4e7bc9792b61fbba0a87ebcb70ef884d",
+    "usbdiag-wifi-readiness.ps1": "7803cf4143f66f8c9c72eabbdcb743a3f5f0f16b990a13e39c6ff2d44c30a963",
+    "usbdiag-bundle-commit.ps1": "2ac6672c314639e0250ad4a46ef919c833c9dd650b9417020c5bae39c40950b2"
+  }
+}

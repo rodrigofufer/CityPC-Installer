@@ -1,0 +1,13 @@
+# Configuracion privada provisionada fisicamente en cada USB.
+usbdiag.shared.local.cmd
+wifi.local.cmd
+*.local.cmd
+
+# Residuos operativos locales; nunca versionar.
+logs/
+pending/
+*.runtime.log
+
+# Transaccion durable y confirmaciones residuales del auto-update.
+.usbdiag-update-transaction/
+.usbdiag-update-transaction.confirmed-*/

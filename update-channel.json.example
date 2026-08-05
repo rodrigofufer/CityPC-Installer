@@ -1,0 +1,6 @@
+{
+  "schema": "citypc.usbdiag.update-channel.v1",
+  "version": 8,
+  "commit": "REEMPLAZAR_COMMIT_SHA40",
+  "manifestSha256": "REEMPLAZAR_SHA256_MANIFEST"
+}
