@@ -1,0 +1,6 @@
+@echo off
+rem Este es el unico archivo que puede cambiar entre JP y Urano.
+rem Copiar como wifi.local.cmd y completar fuera de Git.
+set "WIFI_SSID=REEMPLAZAR_SSID_LOCAL"
+set "WIFI_PASS=REEMPLAZAR_PASSWORD_LOCAL"
+exit /b 0

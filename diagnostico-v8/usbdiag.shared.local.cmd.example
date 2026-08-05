@@ -1,0 +1,6 @@
+@echo off
+rem Este archivo debe ser identico en las USB de JP y Urano.
+rem Copiar como usbdiag.shared.local.cmd y completar fuera de Git.
+set "WEBHOOK_URL=https://REEMPLAZAR_HOST/webhook/diagnostico-citypc-v2"
+set "CITYPC_USB_TOKEN=REEMPLAZAR_TOKEN_ACOTADO"
+exit /b 0
